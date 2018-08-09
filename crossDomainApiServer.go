@@ -1,32 +1,31 @@
 package main
 
 import (
+	"bytes"
 	"encoding/json"
+	"fmt"
 	"io/ioutil"
 	"log"
 	"net/http"
-				"bytes"
-	"fmt"
 )
 
 type Header struct {
-	Key string `json:"key"`
+	Key   string `json:"key"`
 	Value string `json:"value"`
 }
 
 type Data struct {
-	Key string `json:"key"`
+	Key   string `json:"key"`
 	Value string `json:"value"`
 }
 
 type Message struct {
-	Method  string  `json:"method"`
-	Url string `json:"url"`
-	ContentType string `json:"contentType"`
-	Headers []Header `json:"headers"`
-	Datas []Data `json:"datas"`
+	Method      string   `json:"method"`
+	Url         string   `json:"url"`
+	ContentType string   `json:"contentType"`
+	Headers     []Header `json:"headers"`
+	Datas       []Data   `json:"datas"`
 }
-
 
 func main() {
 	http.HandleFunc("/crossApi", handler)
@@ -70,25 +69,30 @@ func handler(w http.ResponseWriter, r *http.Request) {
 	w.Write(resData)
 }
 
-
 func setupResponse(w *http.ResponseWriter, req *http.Request) {
 	(*w).Header().Set("Access-Control-Allow-Origin", "*")
 	(*w).Header().Set("Access-Control-Allow-Methods", "POST, GET, OPTIONS, PUT, DELETE")
 	(*w).Header().Set("Access-Control-Allow-Headers", "Accept, Content-Type, Content-Length, Accept-Encoding, X-CSRF-Token, Authorization")
 }
 
-
 func requestNaverShopApi(msg *Message, w http.ResponseWriter) ([]byte, error) {
+	method := msg.Method
+	url := msg.Url
 	client := &http.Client{}
-	req, err := http.NewRequest("GET", "https://openapi.naver.com/v1/search/shop.json?query=%EC%A3%BC%EC%8B%9D&display=10&start=1&sort=sim", bytes.NewReader(nil))
-	req.Header.Add("X-Naver-Client-Id", "ROhO_F9xQh2k9QS0dToc")
-	req.Header.Add("X-Naver-Client-Secret", "yTtowUx8Rj")
+	req, err := http.NewRequest(method, url+"?query=%EC%A3%BC%EC%8B%9D&display=10&start=1&sort=sim", bytes.NewReader(nil))
+
+	if msg.Headers != nil {
+		for _, data := range msg.Headers {
+			req.Header.Add(data.Key, data.Value)
+		}
+	}
+	//req.Header.Add("X-Naver-Client-Id", "ROhO_F9xQh2k9QS0dToc")
+	//req.Header.Add("X-Naver-Client-Secret", "yTtowUx8Rj")
 
 	if err != nil {
 		http.Error(w, err.Error(), 500)
 		return []byte(""), err
 	}
-
 
 	resp, err := client.Do(req)
 	defer resp.Body.Close()
@@ -99,5 +103,5 @@ func requestNaverShopApi(msg *Message, w http.ResponseWriter) ([]byte, error) {
 	}
 
 	fmt.Printf("%s\n", string(data))
-	return data , nil
+	return data, nil
 }
